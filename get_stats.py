@@ -154,11 +154,12 @@ def update(soup):
         if (current == CURRENTMONTH):
             break
 
-        sleep(2)
 
 
     unique = [x for x in new_games if x not in games]
-    games.append(unique)
+    for item in unique:
+        games.append(item)
+
 
     with open('data.json', 'w') as file:
         json.dump(games, file)
