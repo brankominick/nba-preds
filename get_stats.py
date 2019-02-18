@@ -1,5 +1,6 @@
 import requests
 from requests.compat import urljoin
+import os
 import datetime
 import re
 import json
@@ -84,30 +85,28 @@ box_scores_links = getBoxScoresLinks(soup)
 
 list_of_games = []
 
+def getAllGames(list_of_games,soup):
+    monthList = soup.find(class_='filter')
+    monthListItems = monthList.find_all('a')
+    monthList = [monthListItems[i]['href'] for i in range(len(monthListItems))]
+    print(monthList)
 
-monthList = soup.find(class_='filter')
-monthListItems = monthList.find_all('a')
-monthList = [monthListItems[i]['href'] for i in range(len(monthListItems))]
-print(monthList)
+    for i in monthList:
+        page = s.get(BASEURL+i)
+        soup = BeautifulSoup(page.text, 'html.parser')
+        current = soup.find(class_='filter').find(class_='current').getText()
+        print(current)
 
-for i in monthList:
-    page = s.get(BASEURL+i)
-    soup = BeautifulSoup(page.text, 'html.parser')
-    current = soup.find(class_='filter').find(class_='current').getText()
-    print(current)
+        box_scores_links = getBoxScoresLinks(soup)
+        for i in box_scores_links:
+            print(i)
+            getStats(i,list_of_games)
+            sleep(2)
 
-    box_scores_links = getBoxScoresLinks(soup)
-    for i in box_scores_links:
-        print(i)
-        getStats(i,list_of_games)
+        if (current == CURRENTMONTH):
+            break
+
         sleep(2)
-
-    if (current == CURRENTMONTH):
-        break
-
-    sleep(2)
-
-
 
 
 #content > div.filter > div.current
@@ -118,9 +117,62 @@ for i in monthList:
 #print(pd.DataFrame.from_dict(list_of_games).to_string())
 
 
-with open('data.json', 'w') as file:
-    json.dump(list_of_games, file)
+    with open('data.json', 'w') as file:
+        json.dump(list_of_games, file)
+
+#Get games only after last one in data file
+def update(soup):
+    with open('data.json') as file:
+        games = json.loads(file.read())
+    last_game = str(games[-1].keys()).split("'")[1]
+    #print("Last Game:", last_game)
+    month_of_last_game = last_game.split(',')[1].split(' ')[1].lower()
+    #print("Month of last game:", month_of_last_game)
+
+    monthList = soup.find(class_='filter')
+    monthListItems = monthList.find_all('a')
+    monthList = [monthListItems[i]['href'] for i in range(len(monthListItems))]
+
+    while (month_of_last_game not in monthList[0]):
+        monthList.pop(0)
+
+    print(monthList)
+    new_games = []
+
+    for i in monthList:
+        page = s.get(BASEURL+i)
+        soup = BeautifulSoup(page.text, 'html.parser')
+        current = soup.find(class_='filter').find(class_='current').getText()
+        print(current)
+
+        box_scores_links = getBoxScoresLinks(soup)
+        for i in box_scores_links:
+            print(i)
+            getStats(i,new_games)
+            sleep(2)
+
+        if (current == CURRENTMONTH):
+            break
+
+        sleep(2)
+
+
+    unique = [x for x in new_games if x not in games]
+    games.append(unique)
+
+    with open('data.json', 'w') as file:
+        json.dump(games, file)
 
 
 
-#Contains links to schedule of games for each month, let's pull links to each month
+
+
+
+
+    return
+
+
+if (os.stat('data.json').st_size == 0):
+    getAllGames(list_of_games,soup)
+else:
+    update(soup)
