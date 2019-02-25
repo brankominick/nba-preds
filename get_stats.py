@@ -32,7 +32,7 @@ def ripStatsFromTable(table,home_bool):
     foot = table.find('tfoot')
     stat_row = foot.find_all(class_='right ')
     stats = {x['data-stat'] : x.getText() for x in stat_row}
-    stats['home'] = home_bool
+    #stats['home'] = home_bool
 
     return stats
 
